@@ -47,8 +47,11 @@ export class YoutubeTranscriptNotAvailableLanguageError extends YoutubeTranscrip
   }
 }
 
+import { HttpsProxyAgent } from 'https-proxy-agent';
+
 export interface TranscriptConfig {
   lang?: string;
+  proxy?: string;
 }
 export interface TranscriptResponse {
   text: string;
@@ -71,14 +74,17 @@ export class YoutubeTranscript {
     config?: TranscriptConfig
   ): Promise<TranscriptResponse[]> {
     const identifier = this.retrieveVideoId(videoId);
+    const agent = config?.proxy ? new HttpsProxyAgent(config.proxy) : undefined;
+    const fetchOptions: RequestInit & { agent?: HttpsProxyAgent<string> } = {
+      agent,
+      headers: {
+        ...(config?.lang && { 'Accept-Language': config.lang }),
+        'User-Agent': USER_AGENT,
+      },
+    };
     const videoPageResponse = await fetch(
       `https://www.youtube.com/watch?v=${identifier}`,
-      {
-        headers: {
-          ...(config?.lang && { 'Accept-Language': config.lang }),
-          'User-Agent': USER_AGENT,
-        },
-      }
+      fetchOptions
     );
     const videoPageBody = await videoPageResponse.text();
 
